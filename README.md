@@ -20,6 +20,18 @@ type Service interface {
 }
 ```
 
+Usage
+-----
+
+```
+dd-trace-wrap-gen -i <an interface to decortate> -o <output_file> ./example
+```
+
+* -i - specify interface name  
+* -o - output filename  
+* -s - target struct name, default: <interface name>WithTracing  
+
+
 ```
 dd-trace-wrap-gen -i Service -o example/service_trace.go ./example
 ```
