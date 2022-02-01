@@ -10,16 +10,6 @@ Installation
 go get github.com/r3code/dd-trace-wrap-gen
 ```
 
-Example
--------
-
-```go
-type Service interface {
-	Set(ctx context.Context, key, value []byte) error
-	Get(ctx context.Context, key []byte) (value []byte, err error)
-}
-```
-
 Usage
 -----
 
@@ -34,10 +24,22 @@ Params:
 
 Example
 -----
+Interface being decorated  
+```go
+type TestInterface interface {
+  F(ctx context.Context, a1 string, a2 ...string) (result1, result2 string, err error)
+  NoError(string) string
+  NoParamsOrResults()
+  Channels(chA chan bool, chB chan<- bool, chanC <-chan bool)
+}
+```
+
 To create a new wrapper use:
 ```
 dd-trace-wrap-gen -i TestInterface -o ./tests/interface_with_datadog_trace.go ./tests
 ```
+
+
 
 Will generate:
 ```go
