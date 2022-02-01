@@ -1,6 +1,6 @@
 package tests
 
-import "golang.org/x/net/context"
+import "context"
 
 // TestInterface is used to test templates
 type TestInterface interface {
