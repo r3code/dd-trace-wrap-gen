@@ -1,7 +1,9 @@
 dd-trace-wrap-gen
 ========
 
-Generates interface decorators with [DataDog Distributes Tracing](https://github.com/DataDog/dd-trace-go) support.
+Generates interface decorators with [DataDog Distributes Tracing](https://github.com/DataDog/dd-trace-go) support.  
+
+[![Build Status](https://app.travis-ci.com/r3code/dd-trace-wrap-gen.svg?branch=main)](https://app.travis-ci.com/r3code/dd-trace-wrap-gen)
 
 Installation
 ------------
