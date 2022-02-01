@@ -85,6 +85,10 @@ func TestTestInterfaceWithOpenTelemetryTracing_F(t *testing.T) {
 				return false
 			}
 
+			if err.Error() == "skip me please, case 2" {
+				return false
+			}
+
 			return true
 		}
 		wrapped := NewTestInterfaceWithTracing(impl, "test.operation", noopSpanDecorator, checkErrorMarkRequired)
