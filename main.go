@@ -44,7 +44,7 @@ type {{$decorator}} struct {
 // New{{$decorator}} returns {{$decorator}} for the base service with a specified 
 // Datadog’s span name spanName (equals OpenTracing “component” tag), and allows to add extra data to the span by spanDecorator (a func to add some extra tags for a span). 
 // Pass nil if you don't need decorations.  
-// You can skip marking a span with an error mark by adding custom logic as errorDecider func. Optional, by default uses always true decider.  
+// You can skip marking a span with an error mark by returning false in errorDecider func. Optional, by default the decider always returns true.  
 //
 //  Note: when using Datadog, the OpenTracing operation name is a resource and the OpenTracing “component” tag is Datadog’s span name.
 //  SpanName in DataDog becomes an "operation name" and "resource name" is taken from $method.Name
@@ -74,14 +74,13 @@ func New{{$decorator}} (base {{.Interface.Type}}, spanName string, spanDecorator
     // {{$method.Name}} implements {{$.Interface.Type}}
     func (_d {{$decorator}}) {{$method.Declaration}} {
       _span, ctx := tracer.StartSpanFromContext(ctx, _d._spanName, tracer.ResourceName( "{{$method.Name}}"))
-      if _d._spanDecorator != nil {
-        _d._spanDecorator(_span, {{$method.ParamsMap}}, {{$method.ResultsMap}})
-      }
       defer func() {
+		if _d._spanDecorator != nil {
+            _d._spanDecorator(_span, {{$method.ParamsMap}}, {{$method.ResultsMap}})
+        }
         var opts []tracer.FinishOption
         {{- if $method.ReturnsError}}
-        if err == nil { return }
-        if _d._errorDecider(err) {
+        if err != nil && _d._errorDecider(err) {
             opts = append(opts, tracer.WithError(err))
         }
         {{end}}
