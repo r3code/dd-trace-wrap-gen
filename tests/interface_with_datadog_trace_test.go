@@ -34,6 +34,27 @@ func TestTestInterfaceWithOpenTelemetryTracing_F(t *testing.T) {
 		require.Equal(t, "root_span", spans[1].OperationName())
 	})
 
+	t.Run("it creates span without error mark if method not returning error", func(t *testing.T) {
+		mt := mocktracer.Start()
+		defer mt.Stop()
+
+		impl := &testImpl{result1: "1", result2: "OK"}
+		noopSpanDecorator := func(span tracer.Span, params, results map[string]interface{}) {
+		}
+		wrapped := NewTestInterfaceWithTracing(impl, "test.operation", noopSpanDecorator)
+
+		span, ctx := tracer.StartSpanFromContext(context.Background(), "root_span")
+		actual := wrapped.NoErrorWithContext(ctx, "test-str")
+		span.Finish()
+
+		require.Equal(t, "test-str", actual)
+		spans := mt.FinishedSpans()
+		require.Equal(t, 2, len(spans))
+		require.Equal(t, "test.operation", spans[0].OperationName())
+		require.Equal(t, "root_span", spans[1].OperationName())
+		require.Equal(t, spans[0].Tag(ext.Error), nil)
+	})
+
 	t.Run("it marks span with error", func(t *testing.T) {
 		mt := mocktracer.Start()
 		defer mt.Stop()
@@ -113,6 +134,10 @@ func (t testImpl) F(_ context.Context, _ string, _ ...string) (result1, result2 
 		return "", "", t.err
 	}
 	return t.result1, t.result2, nil
+}
+
+func (t testImpl) NoErrorWithContext(_ context.Context, s string) string {
+	return s
 }
 
 func (t testImpl) NoError(s string) string {
