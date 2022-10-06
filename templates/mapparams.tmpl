@@ -1,0 +1,60 @@
+import (
+  "context"
+  
+  "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+)
+{{ $decorator := (or .Vars.DecoratorName (printf "%sWithTracing" .Interface.Name)) }}
+// {{$decorator}} implements {{.Interface.Type}} interface instrumented with datadog spans
+type {{$decorator}} struct {
+  {{.Interface.Type}}
+  _spanName string
+  _spanDecorator func(span tracer.Span, params, results map[string]interface{})
+  _errorMarkDecider func(err error) bool
+}
+// New{{$decorator}} returns {{$decorator}} for the base service with a specified 
+// Datadog’s span name spanName (equals OpenTracing “component” tag), and allows to add extra data to the span by spanDecorator (a func to add some extra tags for a span). 
+// Pass nil if you don't need decorations.  
+// You can skip marking a span with an error mark by returning false in errorMarkDecider func. Optional, by default the decider always returns true.  
+//
+//  Note: when using Datadog, the OpenTracing operation name is a resource and the OpenTracing “component” tag is Datadog’s span name.
+//  SpanName in DataDog becomes an "operation name" and "resource name" is taken from $method.Name
+//  Example. Create a span for a http request for url /user/profile:
+//    spanName = "http.request"
+//    resource = "/user/profile"
+func New{{$decorator}} (base {{.Interface.Type}}, spanName string, spanDecorator func(span tracer.Span, params, results map[string]interface{}), errorMarkDecider ...func(err error) bool) {{$decorator}} {
+  d := {{$decorator}} {
+    {{.Interface.Name}}: base,
+    _spanName: spanName,
+    _errorMarkDecider: func(err error) bool { return true }, // by default always allow mark a span having an error
+  }
+  if spanDecorator != nil {
+    d._spanDecorator = spanDecorator
+  }
+  if len(errorMarkDecider) > 0 && errorMarkDecider[0] != nil {
+    d._errorMarkDecider = errorMarkDecider[0]
+  }
+  return d
+}
+{{range $method := .Interface.Methods}}
+  {{if $method.AcceptsContext}}
+    // {{$method.Name}} implements {{$.Interface.Type}}
+    func (_d {{$decorator}}) {{$method.Declaration}} {
+      _span, ctx := tracer.StartSpanFromContext(ctx, _d._spanName, tracer.ResourceName( "{{$method.Name}}"))
+      defer func() {
+		if _d._spanDecorator != nil {
+            _d._spanDecorator(_span, {{$method.ParamsMap}}, {{$method.ResultsMap}})
+        }
+	{{- if $method.ReturnsError}}
+        var opts []tracer.FinishOption
+        if err != nil && _d._errorMarkDecider(err) {
+            opts = append(opts, tracer.WithError(err))
+        }
+        _span.Finish(opts...)
+	{{- else}}
+        _span.Finish()
+	{{end}}
+      }()
+      {{$method.Pass (printf "_d.%s." $.Interface.Name) }}
+    }
+  {{end}}
+{{end}}
